@@ -1,37 +1,16 @@
-; The code below, when compiled and run on an emulator/Game Boy will display an image of bricks
-; as well as a duck. This is used explore the basics of tile mapping and copying memory.
-
-
-; Has same effect as if file was copied above right here
-; 'hardware.inc' defines a lot of hardware memory address constants
 INCLUDE "hardware.inc"
 
-; Define the Header section
-; Section is a key word to define a section
-; "Header" is the name we have chosen to name this section (although it could be left blank)
-; ROM0 says which memory type the section belongs to
-; [$100] tells where section is in memory (in this case where in ROM0)
 SECTION "Header", ROM0[$100]
 
-	; Sets the program counter (PC) to the 'EntryPoint' address definied below
 	jp EntryPoint
-
-	; ds statically allocates memory to reserve some amount of bytes
-	; $150 - @ is the number of bytes to reserve (read as: '$150 minus the current memory address')
-	; 0 is optional but says what to set the memory to	
+	
 	ds $150 - @ ; Make room for the header
 
-; The EntryPoint to begin code execution at
 EntryPoint:
 	; Do not turn the LCD off outside of VBlank
-; An address that is used to loop until VBlank (this helps to not damage screen by writing when not supposed to)
 WaitVBlank:
-	; Put's the data in memory address rLY ($FF44) into the a register
 	ld a, [rLY]
-	; Compares the immediate value '144' with what's in register a (which we just loaded). This updates flags as necessary.
-	; This essentially is doing 'a - 144' and updating the flags with the answer.
 	cp 144
-	; Set the program counter to the WaitVBlank address if the c flag is set (meaning the last comparison resulted in a value <= 0)
 	jp c, WaitVBlank
 
 	; Turn the LCD off
