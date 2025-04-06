@@ -39,18 +39,32 @@ WaitVBlank:
 	ld [rLCDC], a
 
 	; Copy the tile data
+	; Address to copy from
 	ld de, Tiles
+	; Address to copy to in VRAM
 	ld hl, $9000
+	; How many bytes will need to copy over
 	ld bc, TilesEnd - Tiles
 CopyTiles:
+	; Copy tile data from address on 
 	ld a, [de]
+	; Put this tile data in the address storing to in VRAM
 	ld [hli], a
+	; Increment where at in tile data
 	inc de
+	; Decrement the number of bytes remaining to copy
 	dec bc
+
+	; Copy the value from register b into register a
 	ld a, b
+	; Bit-wise or register c with register a
 	or a, c
+	; Jump if the last operation didn't overflow (a|c == 0)
+	; This means there are no more bytes to copy over from tile data
 	jp nz, CopyTiles
 
+
+	; Repeat the same thing as was for the 'CopyTiles' stuff, but for the tile map (now in VRAM @ $9800)
 	; Copy the tilemap
 	ld de, Tilemap
 	ld hl, $9800
@@ -72,8 +86,11 @@ CopyTilemap:
 	ld a, %11100100
 	ld [rBGP], a
 
+; Infinite loop so doesn't execute non-executable memory
 Done:
 	jp Done
+
+; Below are the sections for the tile data, and the tile map data
 
 Section "Tile data", ROM0
 
