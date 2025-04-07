@@ -132,8 +132,27 @@ ClearOam:
 	ld [rOBP0], a
 
 ; Infinite loop so doesn't execute non-executable memory
-Done:
-	jp Done
+; This controls the movement of the paddle object on the screen
+Main:
+	; Wait until it's *not* VBlank
+	ld a, [rLY]
+	cp 144
+	jp nc, Main
+WaitVBlank2:
+	; Wait until it *is* VBlank
+	ld a, [rLY]
+	cp 144
+	jp c, WaitVBlank2
+
+	; Move the paddle one pixel to the right
+	; Put X Pos in register a
+	ld a, [_OAMRAM + 1]
+	; Increment the X Pos
+	inc a
+	; Put the X Pos back in memory
+	ld [_OAMRAM + 1], a
+	; loop
+	jp Main
 
 ; Below are the sections for the tile data, and the tile map data
 
