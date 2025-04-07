@@ -131,6 +131,11 @@ ClearOam:
 	ld a, %11100100
 	ld [rOBP0], a
 
+
+	; Initialize global variables
+	ld a, 0
+	ld [wFrameCounter], a
+
 ; Infinite loop so doesn't execute non-executable memory
 ; This controls the movement of the paddle object on the screen
 Main:
@@ -144,6 +149,16 @@ WaitVBlank2:
 	cp 144
 	jp c, WaitVBlank2
 
+	ld a, [wFrameCounter]
+	inc a
+	ld [wFrameCounter], a
+	cp a, 15 ; Every 15 frames (a quarter second), run the following code
+	jp nz, Main
+
+	; Reset the frame counter back to 0
+	ld a, 0
+	ld [wFrameCounter], a
+	
 	; Move the paddle one pixel to the right
 	; Put X Pos in register a
 	ld a, [_OAMRAM + 1]
@@ -404,3 +419,7 @@ Paddle:
     dw `00000000
     dw `00000000
 PaddleEnd:
+
+; Global variable for keeping track of when last moved paddle
+SECTION "Counter", WRAM0
+wFrameCounter: db
