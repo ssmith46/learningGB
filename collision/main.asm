@@ -74,6 +74,58 @@ UpdateKeys:
   ret
 
 
+; Convert a pixel position to a tilemap address
+; hl = $9800 + X + Y * 32
+; @param b: X
+; @param c: Y
+; @return hl: tile address
+GetTileByPixel:
+    ; First, we need to divide by 8 to convert a pixel position to a tile position.
+    ; After this we want to multiply the Y position by 32.
+    ; These operations effectively cancel out so we only need to mask the Y value.
+    ld a, c
+    and a, %11111000
+    ld l, a
+    ld h, 0
+    ; Now we have the position * 8 in hl
+    add hl, hl ; position * 16
+    add hl, hl ; position * 32
+    ; Convert the X position to an offset.
+    ld a, b
+    srl a ; a / 2
+    srl a ; a / 4
+    srl a ; a / 8
+    ; Add the two offsets together.
+    add a, l
+    ld l, a
+    adc a, h
+    sub a, l
+    ld h, a
+    ; Add the offset to the tilemap's base address, and we are done!
+    ld bc, $9800
+    add hl, bc
+    ret
+
+
+; @param a: tile ID
+; @return z: set if a is a wall.
+IsWallTile:
+    cp a, $00
+    ret z
+    cp a, $01
+    ret z
+    cp a, $02
+    ret z
+    cp a, $04
+    ret z
+    cp a, $05
+    ret z
+    cp a, $06
+    ret z
+    cp a, $07
+    ret
+
+
 ; The EntryPoint to begin code execution at
 EntryPoint:
 	; Do not turn the LCD off outside of VBlank
@@ -206,6 +258,64 @@ WaitVBlank2:
 	ld a, [_OAMRAM + 4]
 	add a, b
 	ld [_OAMRAM + 4], a
+
+BounceOnTop:
+	; Remember to offset the OAM position!
+	; (8, 16) in OAM coordinates is (0, 0) on the screen
+	ld a, [_OAMRAM + 4]
+	sub a, 16 + 1
+	ld c, a
+	ld a, [_OAMRAM + 5]
+	sub a, 8
+	ld b, a
+	call GetTileByPixel ; Returns tile address in hl
+	ld a, [hl]
+	call IsWallTile
+	jp nz, BounceOnRight
+	ld a, 1
+	ld [wBallMomentumY], a
+BounceOnRight:
+    ld a, [_OAMRAM + 4]
+    sub a, 16
+    ld c, a
+    ld a, [_OAMRAM + 5]
+    sub a, 8 - 1
+    ld b, a
+    call GetTileByPixel
+    ld a, [hl]
+    call IsWallTile
+    jp nz, BounceOnLeft
+    ld a, -1
+    ld [wBallMomentumX], a
+
+BounceOnLeft:
+    ld a, [_OAMRAM + 4]
+    sub a, 16
+    ld c, a
+    ld a, [_OAMRAM + 5]
+    sub a, 8 + 1
+    ld b, a
+    call GetTileByPixel
+    ld a, [hl]
+    call IsWallTile
+    jp nz, BounceOnBottom
+    ld a, 1
+    ld [wBallMomentumX], a
+
+BounceOnBottom:
+    ld a, [_OAMRAM + 4]
+    sub a, 16 - 1
+    ld c, a
+    ld a, [_OAMRAM + 5]
+    sub a, 8
+    ld b, a
+    call GetTileByPixel
+    ld a, [hl]
+    call IsWallTile
+    jp nz, BounceDone
+    ld a, -1
+    ld [wBallMomentumY], a
+BounceDone:
 
 	; Check the keys to see if need to move left or right 
 	call UpdateKeys
